@@ -29,12 +29,20 @@ class Series():
         if self.ndim == 2:
             self.upd_min_x = min_x is None
             self.upd_max_x = max_x is None
-            self.min_x = min_x if not self.upd_min_x else min(self.x)
-            self.max_x = max_x if not self.upd_max_x else max(self.x)
+            if self.x:
+                self.min_x = min_x if not self.upd_min_x else min(self.x)
+                self.max_x = max_x if not self.upd_max_x else max(self.x)
+            else:
+                self.min_x = float("-inf")
+                self.max_x = float("inf")
         self.upd_min_y = min_y is None
         self.upd_max_y = max_y is None
-        self.min_y = min_y if not self.upd_min_y else min(self.y)
-        self.max_y = max_y if not self.upd_max_y else max(self.y)
+        if self.y:
+            self.min_y = min_y if not self.upd_min_y else min(self.y)
+            self.max_y = max_y if not self.upd_max_y else max(self.y)
+        else:
+            self.min_y = float("-inf")
+            self.max_y = float("inf")
 
         # Store marker
         self.marker = marker
@@ -113,7 +121,7 @@ class BoundedSeries(Series):
         self._upd_y_lim(None)
 
         # And keep track of the filled length, and the next index to fill
-        self.len = min(self.max_len, len(self.y))
+        self.len = min(self.max_len, len(x_or_y))
         self.next_slot = self.len % self.max_len
 
     def __repr__(self):
@@ -133,6 +141,7 @@ class BoundedSeries(Series):
 
     def __iter__(self):
         def circ_iter(start, length):
+            start = start % length
             if self.ndim == 1:
                 yield self.y[start]
             else:
@@ -145,7 +154,7 @@ class BoundedSeries(Series):
                 else:
                     yield self.y[ind]
                 ind = (ind + 1) % length
-        return circ_iter(self.next_slot, self.max_len)
+        return circ_iter(self.next_slot, self.len)
 
     def _upd_x_lim(self, val):
         if self.upd_min_x:
@@ -173,3 +182,4 @@ class BoundedSeries(Series):
             self.y[self.next_slot] = x_or_val
             self._upd_y_lim(x_or_val)
         self.next_slot = (self.next_slot + 1) % self.max_len
+        self.len = max(self.next_slot, self.len)
